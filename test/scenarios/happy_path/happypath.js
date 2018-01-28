@@ -2,7 +2,7 @@ var Box = require("truffle-box");
 var MemoryLogger = require("../memorylogger");
 var CommandRunner = require("../commandrunner");
 var contract = require("truffle-contract");
-var fs = require("fs");
+var fs = require("fs-extra");
 var path = require("path");
 var assert = require("assert");
 var Server = require("../server");
@@ -69,6 +69,24 @@ describe("Happy path (truffle unbox)", function() {
       });
 
       Promise.all(promises).then(function() {
+        done();
+      }).catch(done);
+    });
+  });
+
+  it.only("will migrate a solo Migrations contract", function(done) {
+    this.timeout(20000);
+
+    fs.removeSync(path.join(config.migrations_directory, "2_deploy_contracts.js"));
+
+    CommandRunner.run("migrate", config, function(err) {
+      if (err) return done(err);
+
+      var Migrations = contract(require(path.join(config.contracts_build_directory, "Migrations.json")));
+
+      Migrations.setProvider(config.provider);
+      migrationPromise = Migrations.deployed().then(function(instance) {
+        assert.notEqual(instance.address, null, instance.contract_name + " didn't have an address!")
         done();
       }).catch(done);
     });
